@@ -42,15 +42,16 @@ class AI(object):
         # Clear candidate_list, must do this step
         self.candidate_list.clear()
         # ==================================================================
-        action_list = AI.get_all_actions(self, chessboard)
+        action_list = self.get_all_actions(chessboard, self.color)
         start = time.time()
         action, weight = self.alpha_beta(chessboard, self.color, -9999999, 9999999, start)
         self.candidate_list = action_list
-        self.candidate_list.remove(action)
-        self.candidate_list.append(action)
+        if action is not None:
+            self.candidate_list.remove(action)
+            self.candidate_list.append(action)
 
-    def get_all_actions(self, chessboard):
-        idx = np.where(chessboard == self.color)
+    def get_all_actions(self, chessboard, color):
+        idx = np.where(chessboard == color)
         idx = list(zip(idx[0], idx[1]))
         action_list = []
         drow = [-1, -1, -1, 0, 0, 1, 1, 1]
@@ -61,7 +62,7 @@ class AI(object):
                 row = my_piece[0] + drow[i]
                 col = my_piece[1] + dcol[i]
                 while 0 <= row < self.chessboard_size and 0 <= col < self.chessboard_size:  # If not out of border
-                    if chessboard[row][col] == -1 * self.color:  # If there is an opponent nearby
+                    if chessboard[row][col] == -1 * color:  # If there is an opponent nearby
                         row = row + drow[i]
                         col = col + dcol[i]
                         permission_to_go = True
@@ -85,15 +86,14 @@ class AI(object):
     def alpha_beta(self, chessboard, color, a, b, start):
         if self.depth > self.max_depth:
             return None, self.evaluate(chessboard)
-        action_list = AI.get_all_actions(self, chessboard)
+        action_list = self.get_all_actions(chessboard, self.color)
         if len(action_list) == 0:
-            run_time = time.time() - start
-            if run_time >= 2:
+            if len(self.get_all_actions(chessboard, -1 * color)) == 0:
                 return None, self.evaluate(chessboard)
             return self.alpha_beta(chessboard, -1 * color, a, b, start)
 
-        max = -9999999
-        min = 9999999
+        Max = -9999999
+        Min = 9999999
         action = ()
 
         for p in action_list:
@@ -105,22 +105,22 @@ class AI(object):
                     if current > b:
                         return p, current
                     a = current
-                if current > max:
-                    max = current
+                if current > Max:
+                    Max = current
                     action = p
             else:
                 if current < b:
                     if current < a:
                         return p, current
                     b = current
-                if current < min:
-                    min = current
+                if current < Min:
+                    Min = current
                     action = p
 
         if color == self.color:
-            return action, max
+            return action, Max
         else:
-            return action, min
+            return action, Min
 
         # Make sure that the position of your decision in chess board is empty.
         # If not, the system will return error.

@@ -9,6 +9,11 @@ random.seed(0)
 
 
 # don't change the class name
+def get_total_number(chessboard):
+    piece_number = np.sum(chessboard != 0)
+    return piece_number
+
+
 class AI(object):
     weight = np.array([
         [70, -15, 20, 20, 20, 20, -15, 70],
@@ -42,35 +47,57 @@ class AI(object):
         # Clear candidate_list, must do this step
         self.candidate_list.clear()
         # ==================================================================
+        action, weight = self.alpha_beta(chessboard, self.color, -9999999, 9999999)
         action_list = self.get_all_actions(chessboard, self.color)
-        start = time.time()
-        action, weight = self.alpha_beta(chessboard, self.color, -9999999, 9999999, start)
         self.candidate_list = action_list
-        if action is not None:
+        if action != () and action in action_list:
             self.candidate_list.remove(action)
             self.candidate_list.append(action)
 
     def get_all_actions(self, chessboard, color):
-        idx = np.where(chessboard == color)
-        idx = list(zip(idx[0], idx[1]))
         action_list = []
         drow = [-1, -1, -1, 0, 0, 1, 1, 1]
         dcol = [-1, 0, 1, -1, 1, -1, 0, 1]
-        for my_piece in idx:
-            for i in range(8):
-                permission_to_go = False
-                row = my_piece[0] + drow[i]
-                col = my_piece[1] + dcol[i]
-                while 0 <= row < self.chessboard_size and 0 <= col < self.chessboard_size:  # If not out of border
-                    if chessboard[row][col] == -1 * color:  # If there is an opponent nearby
-                        row = row + drow[i]
-                        col = col + dcol[i]
+
+        if get_total_number(chessboard) <= 45:
+            idx = np.where(chessboard == color)
+            idx = list(zip(idx[0], idx[1]))
+            for my_piece in idx:
+                for i in range(8):
+                    permission_to_go = False
+                    row = my_piece[0] + drow[i]
+                    col = my_piece[1] + dcol[i]
+                    while 0 <= row < self.chessboard_size and 0 <= col < self.chessboard_size:  # If not out of border
+                        if chessboard[row][col] == -1 * color:  # If there is an opponent nearby
+                            row = row + drow[i]
+                            col = col + dcol[i]
+                            permission_to_go = True
+                        elif chessboard[row][col] == 0 and permission_to_go is True:
+                            if (row, col) not in action_list:
+                                action_list.append((row, col))
+                            break
+                        else:
+                            break
+        elif get_total_number(chessboard) > 45:
+            idx = np.where(chessboard == COLOR_NONE)
+            idx = list(zip(idx[0], idx[1]))
+            for i in idx:
+                for j in range(8):
+                    row = i[0] + drow[j]
+                    col = i[1] + dcol[j]
+                    permission_to_go = False
+                    while 0 <= row < self.chessboard_size and 0 <= col < self.chessboard_size:
+                        if chessboard[row][col] == color or chessboard[row][col] == 0:
+                            break
+                        row += drow[j]
+                        col += dcol[j]
                         permission_to_go = True
-                    elif chessboard[row][col] == 0 and permission_to_go is True:
-                        action_list.append((row, col))
-                        break
-                    else:
-                        break
+                    if permission_to_go is True:
+                        if 0 <= row < self.chessboard_size and 0 <= col < self.chessboard_size:
+                            if chessboard[row][col] == color:
+                                if i not in action_list:
+                                    action_list.append(i)
+                                break
         return action_list
 
     def evaluate(self, chessboard):
@@ -83,22 +110,22 @@ class AI(object):
                     count -= self.weight[i][j]
         return count
 
-    def alpha_beta(self, chessboard, color, a, b, start):
+    def alpha_beta(self, chessboard, color, a, b):
         if self.depth > self.max_depth:
-            return None, self.evaluate(chessboard)
-        action_list = self.get_all_actions(chessboard, self.color)
-        if len(action_list) == 0:
+            return (), self.evaluate(chessboard)
+        action_list2 = self.get_all_actions(chessboard, color)
+        if len(action_list2) == 0:
             if len(self.get_all_actions(chessboard, -1 * color)) == 0:
-                return None, self.evaluate(chessboard)
-            return self.alpha_beta(chessboard, -1 * color, a, b, start)
+                return (), self.evaluate(chessboard)
+            return self.alpha_beta(chessboard, -1 * color, a, b)
 
         Max = -9999999
         Min = 9999999
         action = ()
 
-        for p in action_list:
+        for p in action_list2:
             self.depth += 1
-            p1, current = self.alpha_beta(chessboard, -1 * color, a, b, start)
+            p1, current = self.alpha_beta(chessboard, -1 * color, a, b)
             self.depth -= 1
             if color == self.color:
                 if current > a:
@@ -127,6 +154,6 @@ class AI(object):
         # Add your decision into candidate_list, Records the chess board
         # You need add all the positions which is valid
         # candidate_list example: [(3,3),(4,4)]
-        # You need append your decision at the end of the candiidate_list,
+        # You need append your decision at the end of the candidate_list,
         # we will choice the last element of the candidate_list as the position you choose
         # If there is no valid position, you must return an empty list.

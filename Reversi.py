@@ -29,7 +29,6 @@ class AI(object):
     weight = weight * (-1)
 
     depth = 0
-    max_depth = 3
 
     # chessboard_size, color, time_out passed from agent
     def __init__(self, chessboard_size, color, time_out):
@@ -47,8 +46,16 @@ class AI(object):
         # Clear candidate_list, must do this step
         self.candidate_list.clear()
         # ==================================================================
-        action, weight = self.alpha_beta(chessboard, self.color, -9999999, 9999999)
         action_list = self.get_all_actions(chessboard, self.color)
+
+        if 0 < len(action_list) < 3:
+            max_depth = 5
+        elif 3 <= len(action_list) < 6:
+            max_depth = 4
+        else:
+            max_depth = 3
+
+        action, weight = self.alpha_beta(chessboard, self.color, -9999999, 9999999, max_depth)
         self.candidate_list = action_list
         if action != () and action in action_list:
             self.candidate_list.remove(action)
@@ -109,14 +116,14 @@ class AI(object):
                     score -= self.weight[i][j]
         return score
 
-    def alpha_beta(self, chessboard, color, a, b):
-        if self.depth > self.max_depth:
+    def alpha_beta(self, chessboard, color, a, b, max_depth):
+        if self.depth > max_depth:
             return (), self.evaluate(chessboard)
         action_list2 = self.get_all_actions(chessboard, color)
         if len(action_list2) == 0:
             if len(self.get_all_actions(chessboard, -1 * color)) == 0:
                 return (), self.evaluate(chessboard)
-            return self.alpha_beta(chessboard, -1 * color, a, b)
+            return self.alpha_beta(chessboard, -1 * color, a, b, max_depth)
 
         alpha = -9999999
         beta = 9999999
@@ -124,7 +131,7 @@ class AI(object):
 
         for p in action_list2:
             self.depth += 1
-            p1, current = self.alpha_beta(chessboard, -1 * color, a, b)
+            p1, current = self.alpha_beta(chessboard, -1 * color, a, b, max_depth)
             self.depth -= 1
             if color == self.color:  # Max
                 if current > a and current > b:

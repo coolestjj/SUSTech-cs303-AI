@@ -9,8 +9,8 @@ random.seed(0)
 
 
 # don't change the class name
-def get_total_number(chessboard):
-    piece_number = np.sum(chessboard != 0)
+def get_total_number(chessboard, color):
+    piece_number = np.sum(chessboard == color)
     return piece_number
 
 
@@ -59,9 +59,9 @@ class AI(object):
         drow = [-1, -1, -1, 0, 0, 1, 1, 1]
         dcol = [-1, 0, 1, -1, 1, -1, 0, 1]
 
-        if get_total_number(chessboard) <= 45:
+        if get_total_number(chessboard, self.color) <= get_total_number(chessboard, COLOR_NONE):
             idx = np.where(chessboard == color)
-            idx = list(zip(idx[0], idx[1]))
+            idx = zip(idx[0], idx[1])
             for my_piece in idx:
                 for i in range(8):
                     permission_to_go = False
@@ -78,37 +78,36 @@ class AI(object):
                             break
                         else:
                             break
-        elif get_total_number(chessboard) > 45:
+        else:
             idx = np.where(chessboard == COLOR_NONE)
-            idx = list(zip(idx[0], idx[1]))
-            for i in idx:
+            idx = zip(idx[0], idx[1])
+            for empty_pos in idx:
                 for j in range(8):
-                    row = i[0] + drow[j]
-                    col = i[1] + dcol[j]
-                    permission_to_go = False
+                    row = empty_pos[0] + drow[j]
+                    col = empty_pos[1] + dcol[j]
+                    First_step_out = False
                     while 0 <= row < self.chessboard_size and 0 <= col < self.chessboard_size:
-                        if chessboard[row][col] == color or chessboard[row][col] == 0:
+                        if chessboard[row][col] == -1 * color:  # If there is an opponent nearby
+                            row += drow[j]
+                            col += dcol[j]
+                            First_step_out = True
+                        elif First_step_out is True and chessboard[row][col] == color:
+                            if empty_pos not in action_list:
+                                action_list.append(empty_pos)
                             break
-                        row += drow[j]
-                        col += dcol[j]
-                        permission_to_go = True
-                    if permission_to_go is True:
-                        if 0 <= row < self.chessboard_size and 0 <= col < self.chessboard_size:
-                            if chessboard[row][col] == color:
-                                if i not in action_list:
-                                    action_list.append(i)
-                                break
+                        else:
+                            break
         return action_list
 
     def evaluate(self, chessboard):
-        count = 0
+        score = 0
         for i in range(self.chessboard_size):
             for j in range(self.chessboard_size):
                 if chessboard[i][j] == self.color:
-                    count += self.weight[i][j]
+                    score += self.weight[i][j]
                 elif chessboard[i][j] == -1 * self.color:
-                    count -= self.weight[i][j]
-        return count
+                    score -= self.weight[i][j]
+        return score
 
     def alpha_beta(self, chessboard, color, a, b):
         if self.depth > self.max_depth:
@@ -119,35 +118,35 @@ class AI(object):
                 return (), self.evaluate(chessboard)
             return self.alpha_beta(chessboard, -1 * color, a, b)
 
-        Max = -9999999
-        Min = 9999999
+        alpha = -9999999
+        beta = 9999999
         action = ()
 
         for p in action_list2:
             self.depth += 1
             p1, current = self.alpha_beta(chessboard, -1 * color, a, b)
             self.depth -= 1
-            if color == self.color:
-                if current > a:
-                    if current > b:
-                        return p, current
+            if color == self.color:  # Max
+                if current > a and current > b:
+                    return p, current
+                elif a < current <= b:
                     a = current
-                if current > Max:
-                    Max = current
+                if current > alpha:
+                    alpha = current
                     action = p
-            else:
-                if current < b:
-                    if current < a:
-                        return p, current
+            else:  # Min
+                if current < b and current < a:
+                    return p, current
+                elif b > current >= a:
                     b = current
-                if current < Min:
-                    Min = current
+                if current < beta:
+                    beta = current
                     action = p
 
         if color == self.color:
-            return action, Max
+            return action, alpha
         else:
-            return action, Min
+            return action, beta
 
         # Make sure that the position of your decision in chess board is empty.
         # If not, the system will return error.

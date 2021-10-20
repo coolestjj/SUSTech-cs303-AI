@@ -15,20 +15,22 @@ def get_total_number(chessboard, color):
 
 
 class AI(object):
+
     weight = np.array([
-        [70, -15, 20, 20, 20, 20, -15, 70],
-        [-20, -30, 5, 5, 5, 5, -30, -15],
-        [20, 5, 1, 1, 1, 1, 5, 20],
-        [20, 5, 1, 1, 1, 1, 5, 20],
-        [20, 5, 1, 1, 1, 1, 5, 20],
-        [20, 5, 1, 1, 1, 1, 5, 20],
-        [-20, -30, 5, 5, 5, 5, -30, -15],
-        [70, -15, 20, 20, 20, 20, -15, 70]
+        [10000, -250, 50, 50, 50, 50, -250, 10000],
+        [-250, -1000, 5, 5, 5, 5, -1000, -250],
+        [50, 5, 15, 1, 1, 15, 5, 50],
+        [50, 5, 1, 1, 1, 1, 5, 50],
+        [50, 5, 1, 1, 1, 1, 5, 50],
+        [50, 5, 15, 1, 1, 15, 5, 50],
+        [-250, -1000, 5, 5, 5, 5, -1000, -250],
+        [10000, -250, 50, 50, 50, 50, -250, 10000]
     ])
 
     weight = weight * (-1)
 
     depth = 0
+    max_depth = 3
 
     # chessboard_size, color, time_out passed from agent
     def __init__(self, chessboard_size, color, time_out):
@@ -46,16 +48,17 @@ class AI(object):
         # Clear candidate_list, must do this step
         self.candidate_list.clear()
         # ==================================================================
+        # action_list = self.get_all_actions(chessboard, self.color)
+
+        # if 0 < len(action_list) < 3:
+        #     self.max_depth = 8
+        # elif 3 <= len(action_list) < 6:
+        #     self.max_depth = 7
+        # else:
+        #     self.max_depth = 6
+
+        action = self.alpha_beta(chessboard, self.color)
         action_list = self.get_all_actions(chessboard, self.color)
-
-        if 0 < len(action_list) < 3:
-            max_depth = 5
-        elif 3 <= len(action_list) < 6:
-            max_depth = 4
-        else:
-            max_depth = 3
-
-        action, weight = self.alpha_beta(chessboard, self.color, -9999999, 9999999, max_depth)
         self.candidate_list = action_list
         if action != () and action in action_list:
             self.candidate_list.remove(action)
@@ -66,7 +69,7 @@ class AI(object):
         drow = [-1, -1, -1, 0, 0, 1, 1, 1]
         dcol = [-1, 0, 1, -1, 1, -1, 0, 1]
 
-        if get_total_number(chessboard, self.color) <= get_total_number(chessboard, COLOR_NONE):
+        if get_total_number(chessboard, color) <= get_total_number(chessboard, COLOR_NONE):
             idx = np.where(chessboard == color)
             idx = zip(idx[0], idx[1])
             for my_piece in idx:
@@ -116,50 +119,63 @@ class AI(object):
                     score -= self.weight[i][j]
         return score
 
-    def alpha_beta(self, chessboard, color, a, b, max_depth):
-        if self.depth > max_depth:
-            return (), self.evaluate(chessboard)
-        action_list2 = self.get_all_actions(chessboard, color)
-        if len(action_list2) == 0:
-            if len(self.get_all_actions(chessboard, -1 * color)) == 0:
-                return (), self.evaluate(chessboard)
-            return self.alpha_beta(chessboard, -1 * color, a, b, max_depth)
+    def alpha_beta(self, chessboard, color):
 
-        alpha = -9999999
-        beta = 9999999
+        def max_value(chessboard, alpha, beta, color):
+
+            if self.depth > self.max_depth:
+                return self.evaluate(chessboard)
+
+            action_list = self.get_all_actions(chessboard, color)
+            if len(action_list) == 0:
+                if len(self.get_all_actions(chessboard, -1 * color)) == 0:
+                    return self.evaluate(chessboard)
+                return min_value(chessboard, alpha, beta, -1 * color)
+            v = float('-inf')
+            for a in action_list:
+                new_chessboard = np.copy(chessboard)
+                new_chessboard[a[0]][a[1]] = color
+                self.depth += 1
+                v = max(v, min_value(new_chessboard, alpha, beta, -1 * color))
+                self.depth -= 1
+                if v >= beta:
+                    return v
+                alpha = max(alpha, v)
+            return v
+
+        def min_value(chessboard, alpha, beta, color):
+
+            if self.depth > self.max_depth:
+                return self.evaluate(chessboard)
+
+            action_list = self.get_all_actions(chessboard, color)
+            if len(action_list) == 0:
+                if len(self.get_all_actions(chessboard, -1 * color)) == 0:
+                    return self.evaluate(chessboard)
+                return max_value(chessboard, alpha, beta, -1 * color)
+            v = float('inf')
+            for a in action_list:
+                new_chessboard = np.copy(chessboard)
+                new_chessboard[a[0]][a[1]] = color
+                self.depth += 1
+                v = min(v, max_value(chessboard, alpha, beta, -1 * color))
+                self.depth -= 1
+                if v <= alpha:
+                    return v
+                beta = min(beta, v)
+            return v
+
+        best_score = float('-inf')
+        beta = float('inf')
         action = ()
-
-        for p in action_list2:
+        action_list = self.get_all_actions(chessboard, color)
+        for a in action_list:
+            new_chessboard = np.copy(chessboard)
+            new_chessboard[a[0]][a[1]] = color
             self.depth += 1
-            p1, current = self.alpha_beta(chessboard, -1 * color, a, b, max_depth)
+            v = min_value(new_chessboard, best_score, beta, color)
             self.depth -= 1
-            if color == self.color:  # Max
-                if current > a and current > b:
-                    return p, current
-                elif a < current <= b:
-                    a = current
-                if current > alpha:
-                    alpha = current
-                    action = p
-            else:  # Min
-                if current < b and current < a:
-                    return p, current
-                elif b > current >= a:
-                    b = current
-                if current < beta:
-                    beta = current
-                    action = p
-
-        if color == self.color:
-            return action, alpha
-        else:
-            return action, beta
-
-        # Make sure that the position of your decision in chess board is empty.
-        # If not, the system will return error.
-        # Add your decision into candidate_list, Records the chess board
-        # You need add all the positions which is valid
-        # candidate_list example: [(3,3),(4,4)]
-        # You need append your decision at the end of the candidate_list,
-        # we will choice the last element of the candidate_list as the position you choose
-        # If there is no valid position, you must return an empty list.
+            if v > best_score:
+                best_score = v
+                action = a
+        return action

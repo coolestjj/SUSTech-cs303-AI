@@ -161,15 +161,15 @@ class AI(object):
                 return self.evaluate(chessboard)
 
             action_list = self.get_all_actions(chessboard, color)
-            if len(action_list) == 0:
-                if len(self.get_all_actions(chessboard, -1 * color)) == 0:
+            if len(action_list) == 0:  # If I don't have moves
+                if len(self.get_all_actions(chessboard, -1 * color)) == 0:  # If you don't have moves
                     return self.evaluate(chessboard)
                 return min_value(chessboard, alpha, beta, color)
             v = float('-inf')
             for a in action_list:
-                new_chessboard = self.change_board(chessboard, color, a)
+                new_chessboard = self.change_board(chessboard, color, a)  # I move
                 self.depth += 1
-                v = max(v, min_value(new_chessboard, alpha, beta, color))
+                v = max(v, min_value(new_chessboard, alpha, beta, color))  # Your turn
                 self.depth -= 1
                 if v >= beta:
                     return v
@@ -182,15 +182,15 @@ class AI(object):
                 return self.evaluate(chessboard)
 
             action_list = self.get_all_actions(chessboard, -1 * color)
-            if len(action_list) == 0:
-                if len(self.get_all_actions(chessboard, color)) == 0:
+            if len(action_list) == 0:  # If you don't have moves
+                if len(self.get_all_actions(chessboard, color)) == 0:  # If I don't have moves
                     return self.evaluate(chessboard)
                 return max_value(chessboard, alpha, beta, color)
             v = float('inf')
             for a in action_list:
-                new_chessboard = self.change_board(chessboard, -1 * color, a)
+                new_chessboard = self.change_board(chessboard, -1 * color, a)  # You move
                 self.depth += 1
-                v = min(v, max_value(new_chessboard, alpha, beta, color))
+                v = min(v, max_value(new_chessboard, alpha, beta, color))  # My turn
                 self.depth -= 1
                 if v <= alpha:
                     return v
@@ -202,9 +202,9 @@ class AI(object):
         action = ()
         action_list = self.get_all_actions(chessboard, color)
         for a in action_list:
-            new_chessboard = self.change_board(chessboard, color, a)
+            new_chessboard = self.change_board(chessboard, color, a)  # I move
             self.depth += 1
-            v = min_value(new_chessboard, best_score, beta, color)
+            v = min_value(new_chessboard, best_score, beta, color)  # Your turn
             self.depth -= 1
             if v > best_score:
                 best_score = v

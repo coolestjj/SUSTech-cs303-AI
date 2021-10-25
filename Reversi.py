@@ -164,12 +164,12 @@ class AI(object):
             if len(action_list) == 0:
                 if len(self.get_all_actions(chessboard, -1 * color)) == 0:
                     return self.evaluate(chessboard)
-                return min_value(chessboard, alpha, beta, -1 * color)
+                return min_value(chessboard, alpha, beta, color)
             v = float('-inf')
             for a in action_list:
                 new_chessboard = self.change_board(chessboard, color, a)
                 self.depth += 1
-                v = max(v, min_value(new_chessboard, alpha, beta, -1 * color))
+                v = max(v, min_value(new_chessboard, alpha, beta, color))
                 self.depth -= 1
                 if v >= beta:
                     return v
@@ -181,16 +181,16 @@ class AI(object):
             if self.depth >= self.max_depth:
                 return self.evaluate(chessboard)
 
-            action_list = self.get_all_actions(chessboard, color)
+            action_list = self.get_all_actions(chessboard, -1 * color)
             if len(action_list) == 0:
-                if len(self.get_all_actions(chessboard, -1 * color)) == 0:
+                if len(self.get_all_actions(chessboard, color)) == 0:
                     return self.evaluate(chessboard)
-                return max_value(chessboard, alpha, beta, -1 * color)
+                return max_value(chessboard, alpha, beta, color)
             v = float('inf')
             for a in action_list:
-                new_chessboard = self.change_board(chessboard, color, a)
+                new_chessboard = self.change_board(chessboard, -1 * color, a)
                 self.depth += 1
-                v = min(v, max_value(new_chessboard, alpha, beta, -1 * color))
+                v = min(v, max_value(new_chessboard, alpha, beta, color))
                 self.depth -= 1
                 if v <= alpha:
                     return v

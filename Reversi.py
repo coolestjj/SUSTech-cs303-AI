@@ -28,14 +28,14 @@ class AI(object):
     # ])
 
     weight = np.array([
-        [-10000, 250, -50, -50, -50, -50, 250, -10000],
-        [250, 900, -5, 10, 10, -5, 900, 250],
+        [-10000, 500, -50, -50, -50, -50, 500, -10000],
+        [500, 900, -5, 10, 10, -5, 900, 500],
         [-50, -5, -300, -1, -1, -300, -5, -50],
         [-50, 10, -1, 0, 0, -1, 10, -50],
         [-50, 10, -1, 0, 0, -1, 10, -50],
         [-50, -5, -300, -1, -1, -300, -5, -50],
-        [250, 900, -5, 10, 10, -5, 900, 250],
-        [-10000, 250, -50, -50, -50, -50, 250, -10000]
+        [500, 900, -5, 10, 10, -5, 900, 500],
+        [-10000, 500, -50, -50, -50, -50, 500, -10000]
     ])
 
     depth = 0
@@ -128,6 +128,31 @@ class AI(object):
                     score -= self.weight[i][j]
         return score
 
+    def change_board(self, chessboard, color, position):
+        new_chessboard = np.copy(chessboard)
+        Suspect = []
+        drow = [-1, -1, -1, 0, 0, 1, 1, 1]
+        dcol = [-1, 0, 1, -1, 1, -1, 0, 1]
+        new_chessboard[position[0]][position[1]] = color
+        for i in range(8):
+            Suspect.clear()
+            row = position[0] + drow[i]
+            col = position[1] + dcol[i]
+            Permission_to_go = False
+            while 0 <= row < self.chessboard_size and 0 <= col < self.chessboard_size:
+                if new_chessboard[row][col] == -1 * color:
+                    Permission_to_go = True
+                    Suspect.append((row, col))
+                    row += drow[i]
+                    col += dcol[i]
+                elif new_chessboard[row][col] == color and Permission_to_go is True:
+                    for pos in Suspect:
+                        new_chessboard[pos[0]][pos[1]] = color
+                    break
+                else:
+                    break
+        return new_chessboard
+
     def alpha_beta(self, chessboard, color):
 
         def max_value(chessboard, alpha, beta, color):
@@ -142,8 +167,7 @@ class AI(object):
                 return min_value(chessboard, alpha, beta, -1 * color)
             v = float('-inf')
             for a in action_list:
-                new_chessboard = np.copy(chessboard)
-                new_chessboard[a[0]][a[1]] = color
+                new_chessboard = self.change_board(chessboard, color, a)
                 self.depth += 1
                 v = max(v, min_value(new_chessboard, alpha, beta, -1 * color))
                 self.depth -= 1
@@ -164,8 +188,7 @@ class AI(object):
                 return max_value(chessboard, alpha, beta, -1 * color)
             v = float('inf')
             for a in action_list:
-                new_chessboard = np.copy(chessboard)
-                new_chessboard[a[0]][a[1]] = color
+                new_chessboard = self.change_board(chessboard, color, a)
                 self.depth += 1
                 v = min(v, max_value(new_chessboard, alpha, beta, -1 * color))
                 self.depth -= 1
@@ -179,8 +202,7 @@ class AI(object):
         action = ()
         action_list = self.get_all_actions(chessboard, color)
         for a in action_list:
-            new_chessboard = np.copy(chessboard)
-            new_chessboard[a[0]][a[1]] = color
+            new_chessboard = self.change_board(chessboard, color, a)
             self.depth += 1
             v = min_value(new_chessboard, best_score, beta, color)
             self.depth -= 1

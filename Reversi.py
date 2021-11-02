@@ -15,17 +15,15 @@ def get_total_number(chessboard, color):
 
 
 class AI(object):
-
-    # weight = np.array([
-    #     [10000, -250, 50, 50, 50, 50, -250, 10000],
-    #     [-250, -900, 5, -10, -10, 5, -900, -250],
-    #     [50, 5, 300, 1, 1, 300, 5, 50],
-    #     [50, -10, 1, 1, 1, 1, -10, 50],
-    #     [50, -10, 1, 1, 1, 1, -10, 50],
-    #     [50, 5, 300, 1, 1, 300, 5, 50],
-    #     [-250, -900, 5, -10, -10, 5, -900, -250],
-    #     [10000, -250, 50, 50, 50, 50, -250, 10000]
-    # ])
+    # weight = np.array([[500, -25, 10, 5, 5, 10, -25, 500],
+    #                    [-25, -45, 1, 1, 1, 1, -45, -25],
+    #                    [10, 1, 3, 2, 2, 3, 1, 10],
+    #                    [5, 1, 2, 1, 1, 2, 1, 5],
+    #                    [5, 1, 2, 1, 1, 2, 1, 5],
+    #                    [10, 1, 3, 2, 2, 3, 1, 10],
+    #                    [-25, -45, 1, 1, 1, 1, -45, -25],
+    #                    [500, -25, 10, 5, 5, 10, -25, 500]])
+    # weight = -1 * weight
 
     weight = np.array([
         [-10000, 500, -50, -50, -50, -50, 500, -10000],
@@ -59,16 +57,21 @@ class AI(object):
         # ==================================================================
         action_list = self.get_all_actions(chessboard, self.color)
 
-        # if 0 < len(action_list) < 2:
-        #     self.max_depth = 4
-        # elif 3 <= len(action_list) < 6:
-        #     self.max_depth = 4
-        # else:
-        #     self.max_depth = 3
+        self.candidate_list = action_list
+
+        if 0 < len(action_list) < 6:
+            self.max_depth = 5
+        else:
+            self.max_depth = 4
+
+        if get_total_number(chessboard, COLOR_NONE) <= 8:
+            self.max_depth = 8
+
+        # self.candidate_list = action_list
         # action_list = self.get_all_actions(chessboard, self.color)
         action = self.alpha_beta(chessboard, self.color)
         # action_list = self.get_all_actions(chessboard, self.color)
-        self.candidate_list = action_list
+        # self.candidate_list = action_list
         if action != () and action in action_list:
             self.candidate_list.remove(action)
             self.candidate_list.append(action)
@@ -118,7 +121,7 @@ class AI(object):
                             break
         return action_list
 
-    def evaluate(self, chessboard):
+    def evaluate_weight(self, chessboard):
         score = 0
         for i in range(self.chessboard_size):
             for j in range(self.chessboard_size):
@@ -127,6 +130,64 @@ class AI(object):
                 elif chessboard[i][j] == -1 * self.color:
                     score -= self.weight[i][j]
         return score
+
+    def stable(self, chessboard):
+        number = 0
+        a = [0, 7, 0, 7]
+        b = [0, 0, 7, 7]
+        drow = [-1, -1, -1, 0, 0, 1, 1, 1]
+        dcol = [-1, 0, 1, -1, 1, -1, 0, 1]
+        for i in range(4):
+            if chessboard[a[i]][b[i]] == self.color:
+                number += 1
+                for j in range(8):
+                    row = a[i] + drow[j]
+                    col = b[i] + dcol[j]
+                    while 0 <= row < self.chessboard_size and 0 <= col < self.chessboard_size:
+                        if chessboard[row][col] == self.color:
+                            number += 1
+                            row += drow[j]
+                            col += dcol[j]
+                        else:
+                            break
+
+        return number
+
+    def frontier(self, chessboard):
+        number = 0
+        drow = [-1, -1, -1, 0, 0, 1, 1, 1]
+        dcol = [-1, 0, 1, -1, 1, -1, 0, 1]
+        for i in range(1, 7):
+            for j in range(1, 7):
+                if chessboard[i][j] == self.color:
+                    for k in range(8):
+                        row = i + drow[k]
+                        col = j + dcol[k]
+                        if chessboard[row][col] == COLOR_NONE:
+                            number += 1
+                            break
+
+        return number
+
+    def evaluate(self, chessboard):
+        score = self.evaluate_weight(chessboard) - 500 * self.stable(chessboard) + 50 * len(
+            self.get_all_actions(chessboard, self.color)) + 10 * self.frontier(chessboard)
+        return score
+
+    # def evaluate(self, chessboard):
+    #     score = self.evaluate_weight(chessboard) - 10 * self.stable(chessboard) - 10 * len(
+    #         self.get_all_actions(chessboard, self.color)) + 10 * self.frontier(chessboard)
+    #     return score
+
+    # def evaluate(self, chessboard):
+    #     score = 0
+    #     for i in range(self.chessboard_size):
+    #         for j in range(self.chessboard_size):
+    #             if chessboard[i][j] == self.color:
+    #                 score += self.weight[i][j]
+    #             elif chessboard[i][j] == -1 * self.color:
+    #                 score -= self.weight[i][j]
+    #     return score
 
     def change_board(self, chessboard, color, position):
         new_chessboard = np.copy(chessboard)

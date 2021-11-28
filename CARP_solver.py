@@ -1,29 +1,6 @@
 import sys
 import numpy as np
-
-
-# def dijkstra(cost_graph):
-#     dis = np.zeros((len(cost_graph), len(cost_graph)))
-#     for start in range(1, len(cost_graph)):
-#         visited = [0] * (len(cost_graph))
-#         visited[start] = 1
-#         distance = [9999999] * (len(cost_graph))
-#         for i in range(1, len(cost_graph)):
-#             distance[i] = cost_graph[start][i]
-#         for i in range(1, len(cost_graph)):
-#             MIN = 9999999
-#             unvisited = 0
-#             for j in range(1, len(cost_graph)):
-#                 if visited[j] == 0 and distance[j] < MIN:
-#                     MIN = distance[j]
-#                     unvisited = j
-#             visited[unvisited] = 1
-#             for j in range(1, len(cost_graph)):
-#                 if cost_graph[unvisited][j] != 9999999:
-#                     distance[j] = min(distance[j], distance[unvisited] + cost_graph[unvisited][j])
-#         for i in range(1, len(cost_graph)):
-#             dis[start][i] = distance[i]
-#     return dis
+import time
 
 
 def floyd(cost_graph):
@@ -36,7 +13,8 @@ def floyd(cost_graph):
     return dis
 
 
-def path_scanning(depot, cost_graph, demand_graph, free, capacity, dis):
+def path_scanning(depot, cost_graph, demand_graph, vertices_num, capacity, dis, mode):
+    free = make_free(demand_graph, vertices_num)
     result = []
     q = 0
     while True:
@@ -51,8 +29,27 @@ def path_scanning(depot, cost_graph, demand_graph, free, capacity, dis):
                     if dis[start][arc[0]] < dis2:
                         dis2 = dis[start][arc[0]]
                         arc2 = arc
-                    elif dis[start][arc[0]] == dis2 and dis[arc[1]][start] < dis[arc2[1]][start]:
-                        arc2 = arc
+                    elif dis[start][arc[0]] == dis2:
+                        if mode == 1:
+                            if dis[arc[1]][start] < dis[arc2[1]][start]:
+                                arc2 = arc
+                        if mode == 2:
+                            if dis[arc[1]][start] > dis[arc2[1]][start]:
+                                arc2 = arc
+                        if mode == 3:
+                            if demand_graph[arc[0]][arc[1]] / cost_graph[arc[0]][arc[1]] < demand_graph[arc2[0]][arc2[1]] / cost_graph[arc2[0]][arc2[1]]:
+                                arc2 = arc
+                        if mode == 4:
+                            if demand_graph[arc[0]][arc[1]] / cost_graph[arc[0]][arc[1]] > demand_graph[arc2[0]][arc2[1]] / cost_graph[arc2[0]][arc2[1]]:
+                                arc2 = arc
+                        if mode == 5:
+                            if cap < capacity / 2:
+                                if dis[arc[1]][start] < dis[arc2[1]][start]:
+                                    arc2 = arc
+                            elif cap >= capacity / 2:
+                                if dis[arc[1]][start] > dis[arc2[1]][start]:
+                                    arc2 = arc
+
             if free == [] or dis2 == 9999999:
                 break
             route.append(arc2)
@@ -66,12 +63,24 @@ def path_scanning(depot, cost_graph, demand_graph, free, capacity, dis):
         q += dis[start][depot]
         if not free:
             break
-        # result.append(route)
 
     return result, q
 
 
+def make_free(demand_graph, vertices_num):
+    free = []
+    for i in range(1, vertices_num + 1):
+        for j in range(1, vertices_num + 1):
+            if demand_graph[i][j] != 0 and (i, j) not in free and (j, i) not in free:
+                free.append((i, j))
+                free.append((j, i))
+    return free
+
+
 if __name__ == '__main__':
+
+    start = time.time()
+
     filename = sys.argv[1]
     file = open(filename)
     line = file.readlines()
@@ -108,25 +117,44 @@ if __name__ == '__main__':
         demand_graph[node2][node1] = demand
         i += 1
 
-    # dis = dijkstra(cost_graph)
     dis = floyd(cost_graph)
     # Python CARP_solver.py egl-e1-A.dat -t 123 -s 124
+    # Python CARP_solver.py egl-s1-A.dat -t 123 -s 124
+    # Python CARP_solver.py gdb1.dat -t 123 -s 124
+    # Python CARP_solver.py gdb10.dat -t 123 -s 124
+    # Python CARP_solver.py val1A.dat -t 123 -s 124
+    # Python CARP_solver.py val4A.dat -t 123 -s 124
+    # Python CARP_solver.py val7A.dat -t 123 -s 124
 
-    free = []
-    for i in range(1, vertices_num + 1):
-        for j in range(1, vertices_num + 1):
-            if demand_graph[i][j] != 0 and (i, j) not in free and (j, i) not in free:
-                free.append((i, j))
-                free.append((j, i))
+    result1, q1 = path_scanning(depot, cost_graph, demand_graph, vertices_num, capacity, dis, 1)
+    result2, q2 = path_scanning(depot, cost_graph, demand_graph, vertices_num, capacity, dis, 2)
+    result3, q3 = path_scanning(depot, cost_graph, demand_graph, vertices_num, capacity, dis, 3)
+    result4, q4 = path_scanning(depot, cost_graph, demand_graph, vertices_num, capacity, dis, 4)
+    result5, q5 = path_scanning(depot, cost_graph, demand_graph, vertices_num, capacity, dis, 5)
 
-    result, q = path_scanning(depot, cost_graph, demand_graph, free, capacity, dis)
+    q = min(q1, q2, q3, q4, q5)
+    result = []
+    if q == q1:
+        result = result1
+        # print(1)
+    elif q == q2:
+        result = result2
+        # print(2)
+    elif q == q3:
+        result = result3
+        # print(3)
+    elif q == q4:
+        result = result4
+        # print(4)
+    elif q == q5:
+        result = result5
+
     modified_result = str(result).replace(" ", "").replace("[[", "s 0,").replace("]]", ",0").replace("]", ",0").replace(
         "[", "0,")
 
+    run_time = time.time() - start
+
     print(modified_result)
     print("q", int(q))
-    # print(cost_graph)
-    # print()
-    # print(dijkstra(cost_graph))
-    # print()
-    # print(floyd(cost_graph))
+    # print(run_time)
+

@@ -87,11 +87,7 @@ if __name__ == '__main__':
 
     vertices_num = int(line[1].split(':')[1].replace('\n', ''))
     depot = int(line[2].split(':')[1].replace('\n', ''))
-    required_edges = int(line[3].split(':')[1].replace('\n', ''))
-    non_required_edges = int(line[4].split(':')[1].replace('\n', ''))
-    cars_num = int(line[5].split(':')[1].replace('\n', ''))
     capacity = int(line[6].split(':')[1].replace('\n', ''))
-    total_cost = int(line[7].split(':')[1].replace('\n', ''))
     termination_time = sys.argv[3]
     random_seed = sys.argv[5]
 
